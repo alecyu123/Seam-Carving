@@ -10,11 +10,76 @@ void calc_energy(struct rgb_img *im, struct rgb_img **grad)
     (*grad)->raster = (uint8_t*)malloc(3*(im->height)*(im->width)*sizeof(uint8_t)); // change : need to add sizeof(uint8t?)
     (*grad)->height = im->height;
     (*grad)->width = im->width;
-    if(im->height == 1 || im->width == 1) // need to change (consider 1 x 99 or 99 x 1)
+    if(im->height == 1 && im->width == 1) // need to change (consider 1 x 99 or 99 x 1)
+    {
+        set_pixel(*grad, 0, 0, 0, 0, 0);
+        return;
+    }
+    else if (im->height == 1)
+    {
+        for (int x = 0; x < im->width; x++)
         {
-            set_pixel(*grad, 0, 0, 0, 0, 0);
-            return;
+            int Rx, Gx, Bx;
+            int tot_energy = 0;
+
+            if(x == 0) 
+            {
+                Rx = get_pixel(im, 0, x + 1, 0) - get_pixel(im, 0, im->width - 1 , 0);
+                Gx = get_pixel(im, 0, x + 1, 1) - get_pixel(im, 0, im->width - 1 , 1);
+                Bx = get_pixel(im, 0, x + 1, 2) - get_pixel(im, 0, im->width - 1 , 2);
+            }
+            else if(x == (im->width - 1))
+            {
+                Rx = get_pixel(im, 0, 0, 0) - get_pixel(im, 0, x - 1 , 0);
+                Gx = get_pixel(im, 0, 0, 1) - get_pixel(im, 0, x - 1 , 1);
+                Bx = get_pixel(im, 0, 0, 2) - get_pixel(im, 0, x - 1 , 2);
+            }
+            else
+            {
+                Rx = get_pixel(im, 0, x + 1, 0) - get_pixel(im, 0, x - 1 , 0);
+                Gx = get_pixel(im, 0, x + 1, 1) - get_pixel(im, 0, x - 1 , 1);
+                Bx = get_pixel(im, 0, x + 1, 2) - get_pixel(im, 0, x - 1 , 2);
+            }
+            tot_energy = sqrt(Rx*Rx + Gx*Gx + Bx*Bx)/10;
+            uint8_t total = (uint8_t) tot_energy; // is this how we recast
+            set_pixel(*grad, 0, x, total, total, total);
         }
+        return;
+    }
+    else if (im->width == 1)
+    {
+        for (int y = 0; y < im->height; y++)
+        {
+            int Ry, Gy, By;
+            int tot_energy = 0;
+
+            if(y == 0)
+            {
+                Ry = get_pixel(im, y + 1, 0, 0) - get_pixel(im, im->height - 1, 0, 0);
+                Gy = get_pixel(im, y + 1, 0, 1) - get_pixel(im, im->height - 1, 0, 1);
+                By = get_pixel(im, y + 1, 0, 2) - get_pixel(im, im->height - 1, 0, 2);
+            }
+
+            else if(y == (im->height - 1))
+            {
+                Ry = get_pixel(im, 0, 0, 0) - get_pixel(im, y - 1, 0, 0);
+                Gy = get_pixel(im, 0, 0, 1) - get_pixel(im, y - 1, 0, 1);
+                By = get_pixel(im, 0, 0, 2) - get_pixel(im, y - 1, 0, 2);
+            }
+            else
+            {
+                Ry = get_pixel(im, y + 1, 0, 0) - get_pixel(im, y - 1, 0, 0);
+                Gy = get_pixel(im, y + 1, 0, 1) - get_pixel(im, y - 1, 0, 1);
+                By = get_pixel(im, y + 1, 0, 2) - get_pixel(im, y - 1, 0, 2);
+            }
+
+            tot_energy = sqrt(Ry*Ry + Gy*Gy + By*By)/10;
+            uint8_t total = (uint8_t) tot_energy;
+            set_pixel(*grad, y, 0, total, total, total);
+        }
+        return;
+    }
+    
     for(int y = 0; y < im->height; y++)
     {
         for(int x = 0; x < im->width; x++)
@@ -22,8 +87,7 @@ void calc_energy(struct rgb_img *im, struct rgb_img **grad)
             int tot_energy = 0;
             int Rx, Ry, Gx, Gy, Bx, By;
 
-
-            if(x == 0) // will he test for edge cases such as a 1 by 1 pixel?
+            if(x == 0) 
             {
                 Rx = get_pixel(im, y, x + 1, 0) - get_pixel(im, y, im->width - 1 , 0);
                 Gx = get_pixel(im, y, x + 1, 1) - get_pixel(im, y, im->width - 1 , 1);
@@ -204,34 +268,4 @@ void remove_seam(struct rgb_img *src, struct rgb_img **dest, int *path) // Do I 
     }
 }
 
-int main()
-{
-    struct rgb_img *im;
-    struct rgb_img *cur_im;
-    struct rgb_img *grad;
-    double *best;
-    int *path;
-
-    read_in_img(&im, "HJoceanSmall.bin");
-    
-    for(int i = 0; i < 150; i++){
-        printf("i = %d\n", i);
-        calc_energy(im,  &grad);
-        dynamic_seam(grad, &best);
-        recover_path(best, grad->height, grad->width, &path);
-        remove_seam(im, &cur_im, path);
-
-        char filename[200];
-        sprintf(filename, "img%d.bin", i);
-        write_img(cur_im, filename);
-
-
-        destroy_image(im);
-        destroy_image(grad);
-        free(best);
-        free(path);
-        im = cur_im;
-    }
-    destroy_image(im);
-}
 

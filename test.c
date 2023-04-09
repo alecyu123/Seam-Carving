@@ -18,9 +18,9 @@ int main()
     double *best;
     int *path;
 
-    read_in_img(&im, "6x5.bin");
+    read_in_img(&im, "HJoceanSmall.bin");
     
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < 350; i++){
         printf("i = %d\n", i);
         calc_energy(im,  &grad);
         dynamic_seam(grad, &best);
